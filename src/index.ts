@@ -1,5 +1,4 @@
 import { ApolloServer } from '@apollo/server';
-import { startStandaloneServer } from '@apollo/server/standalone';
 import { RESTDataSource } from '@apollo/datasource-rest';
 import {
     startServerAndCreateLambdaHandler,
@@ -27,7 +26,7 @@ class BankFindAPI extends RESTDataSource {
     }
 }
 
-const typeDefs = `#graphql
+export const typeDefs = `#graphql
 
   input InstitutionsQuery {
     filters: String
@@ -203,15 +202,10 @@ const typeDefs = `#graphql
   }
 `;
 
-interface ContextValue {
-    dataSources: {
-        bankFindAPI: BankFindAPI;
-    };
-}
-
-const resolvers = {
+export const resolvers = {
     Query: {
         institutions: async (parent, args, { dataSources }) => {
+            console.log('>>>>>>>>', dataSources.bankFindAPI);
             return dataSources.bankFindAPI.getInstitutions(args);
         },
     },
@@ -222,22 +216,8 @@ const server = new ApolloServer({
     resolvers,
 });
 
-// const { url } = await startStandaloneServer(server, {
-//     context: async () => {
-//         const { cache } = server;
-//         return {
-//             dataSources: {
-//                 bankFindAPI: new BankFindAPI({ cache }),
-//             },
-//         };
-//     },
-// });
-
-// console.log(`🚀  Server ready at: ${url}`);
-
 export const graphqlHandler = startServerAndCreateLambdaHandler(
     server,
-    // We will be using the Proxy V2 handler
     handlers.createAPIGatewayProxyEventV2RequestHandler(),
     {
         context: async () => {
