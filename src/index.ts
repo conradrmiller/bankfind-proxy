@@ -1,6 +1,10 @@
 import { ApolloServer } from '@apollo/server';
 import { startStandaloneServer } from '@apollo/server/standalone';
 import { RESTDataSource } from '@apollo/datasource-rest';
+import {
+    startServerAndCreateLambdaHandler,
+    handlers,
+} from '@as-integrations/aws-lambda';
 
 type T = any;
 
@@ -218,15 +222,31 @@ const server = new ApolloServer({
     resolvers,
 });
 
-const { url } = await startStandaloneServer(server, {
-    context: async () => {
-        const { cache } = server;
-        return {
-            dataSources: {
-                bankFindAPI: new BankFindAPI({ cache }),
-            },
-        };
-    },
-});
+// const { url } = await startStandaloneServer(server, {
+//     context: async () => {
+//         const { cache } = server;
+//         return {
+//             dataSources: {
+//                 bankFindAPI: new BankFindAPI({ cache }),
+//             },
+//         };
+//     },
+// });
 
-console.log(`🚀  Server ready at: ${url}`);
+// console.log(`🚀  Server ready at: ${url}`);
+
+export const graphqlHandler = startServerAndCreateLambdaHandler(
+    server,
+    // We will be using the Proxy V2 handler
+    handlers.createAPIGatewayProxyEventV2RequestHandler(),
+    {
+        context: async () => {
+            const { cache } = server;
+            return {
+                dataSources: {
+                    bankFindAPI: new BankFindAPI({ cache }),
+                },
+            };
+        },
+    }
+);
